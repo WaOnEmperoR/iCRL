@@ -6,10 +6,24 @@
 package icrl;
 
 import java.io.ByteArrayInputStream;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.math.BigInteger;
+import java.security.KeyStore;
+import java.security.KeyStoreException;
+import java.security.NoSuchAlgorithmException;
+import java.security.PrivateKey;
+import java.security.Security;
+import java.security.UnrecoverableKeyException;
+import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.util.ArrayList;
+import java.util.Enumeration;
 import java.util.List;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import org.bouncycastle.asn1.ASN1InputStream;
 import org.bouncycastle.asn1.ASN1Primitive;
 import org.bouncycastle.asn1.DERIA5String;
@@ -35,43 +49,47 @@ public class ICRL {
         // TODO code application logic here
     }
 
-    private static List<String> getCRLPath(X509Certificate cert) throws IOException {
+    public static void ReadP12(String filename, String password) {
+        Security.addProvider(new org.bouncycastle.jce.provider.BouncyCastleProvider());
 
-        byte[] crldpExt = cert.getExtensionValue("2.5.29.31");
+        String ocsp_str = "";
 
-        ASN1InputStream oAsnInStream = new ASN1InputStream(
-                new ByteArrayInputStream(crldpExt));
-        ASN1Primitive derObjCrlDP = oAsnInStream.readObject();
-        DEROctetString dosCrlDP = (DEROctetString) derObjCrlDP;
-        byte[] crldpExtOctets = dosCrlDP.getOctets();
-        ASN1InputStream oAsnInStream2 = new ASN1InputStream(
-                new ByteArrayInputStream(crldpExtOctets));
-        ASN1Primitive derObj2 = oAsnInStream2.readObject();
-        CRLDistPoint distPoint = CRLDistPoint.getInstance(derObj2);
-        List<String> crlUrls = new ArrayList<String>();
-        for (DistributionPoint dp : distPoint.getDistributionPoints()) {
-            if (debug) {
-                System.out.println(dp);
-            }
-            DistributionPointName dpn = dp.getDistributionPoint();
-            // Look for URIs in fullName
-            if (dpn != null) {
-                if (dpn.getType() == DistributionPointName.FULL_NAME) {
-                    GeneralName[] genNames = GeneralNames.getInstance(
-                            dpn.getName()).getNames();
-                    // Look for an URI
-                    for (int j = 0; j < genNames.length; j++) {
-                        if (genNames[j].getTagNo() == GeneralName.uniformResourceIdentifier) {
-                            String url = DERIA5String.getInstance(
-                                    genNames[j].getName()).getString();
-                            crlUrls.add(url);
-                        }
-                    }
+        byte[] issuerKeyHash = null, issuerNameHash = null;
+        BigInteger serial_number = new BigInteger("0");
+
+        KeyStore my_KS;
+        
+        try {
+            my_KS = KeyStore.getInstance("PKCS12");
+            File f = new File(filename);
+            FileInputStream is = new FileInputStream(f);
+            my_KS.load(is, password.toCharArray());
+
+            BigInteger bi_serial = new BigInteger("0");
+            Enumeration enumeration = my_KS.aliases();
+            
+            while (enumeration.hasMoreElements()) {
+                String alias = (String) enumeration.nextElement();
+                if (debug) {
+                    System.out.println("alias name: " + alias);
                 }
-            }
-        }
 
-        return crlUrls;
+                PrivateKey key = (PrivateKey) my_KS.getKey(alias, password.toCharArray());
+
+                java.security.cert.Certificate[] cchain = my_KS.getCertificateChain(alias);
+
+                int chain_idx = 0;
+            }
+        } catch (KeyStoreException | NoSuchAlgorithmException | CertificateException ex) {
+            Logger.getLogger(ICRL.class.getName()).log(Level.SEVERE, null, ex);
+        } catch (FileNotFoundException ex) {
+            Logger.getLogger(ICRL.class.getName()).log(Level.SEVERE, null, ex);
+        } catch (IOException ex) {
+            Logger.getLogger(ICRL.class.getName()).log(Level.SEVERE, null, ex);
+        } catch (UnrecoverableKeyException ex) {
+            Logger.getLogger(ICRL.class.getName()).log(Level.SEVERE, null, ex);
+        }
+            
     }
 
 }
