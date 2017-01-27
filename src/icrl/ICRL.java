@@ -50,16 +50,13 @@ public class ICRL {
      */
     public static void main(String[] args) {
         // TODO code application logic here
-        //ReadP12("D:\\Tugas PTIK\\Certificate Authority\\Study PKI\\ajinorev_Backup.p12", "aji123456");
-        ReadP12("D:\\Tugas PTIK\\Certificate Authority\\Study PKI\\ajirev.p12", "aji123456");
+        ReadP12("D:\\Tugas PTIK\\Certificate Authority\\Study PKI\\ajinorev_Backup.p12", "aji123456");
+        //ReadP12("D:\\Tugas PTIK\\Certificate Authority\\Study PKI\\ajirev.p12", "aji123456");
     }
 
     public static void ReadP12(String filename, String password) {
         Security.addProvider(new org.bouncycastle.jce.provider.BouncyCastleProvider());
 
-//        String crl_str = "";
-
-//        byte[] issuerKeyHash = null, issuerNameHash = null;
         BigInteger serial_number = new BigInteger("0");
 
         KeyStore my_KS;
@@ -96,6 +93,8 @@ public class ICRL {
                         
                         iCRLVerifier.verifyCertificateCRLs(c);
                     }
+                    
+                    chain_idx++;
                 }
                 
             }
