@@ -11,12 +11,17 @@ import java.io.InputStream;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.security.cert.CRLException;
+import java.security.cert.CRLReason;
 import java.security.cert.CertificateException;
 import java.security.cert.CertificateFactory;
 import java.security.cert.X509CRL;
+import java.security.cert.X509CRLEntry;
 import java.security.cert.X509Certificate;
 import java.util.ArrayList;
+import java.util.Date;
+import java.util.Iterator;
 import java.util.List;
+import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.bouncycastle.asn1.ASN1InputStream;
@@ -95,9 +100,30 @@ public class iCRLVerifier {
             List<String> crlDistPoints = getCRLPath(cert);
             String crlDp = crlDistPoints.get(0);
             X509CRL crl = downloadCRLFromWeb(crlDp);
+            
+//            Set<X509CRLEntry> hasil;
+//            hasil = (Set<X509CRLEntry>) crl.getRevokedCertificates();
+//            
+//            Iterator<X509CRLEntry> iterator = hasil.iterator();
+//            while(iterator.hasNext()) {
+//                X509CRLEntry myEntry = iterator.next();
+//            }
+            
             if (crl.isRevoked(cert)) {
+                X509CRLEntry entry = crl.getRevokedCertificate(cert.getSerialNumber());
+                Date date = entry.getRevocationDate();
+                CRLReason reason = entry.getRevocationReason();
+                
+                String dateStr = date.toString();
+                String reasonStr = reason.toString();
+                
+                System.out.println("Certificate Number " + cert.getSerialNumber().toString() + " has been revoked as per " + dateStr + " with reason : " + reasonStr);
                 throw new CertificateVerificationException(
                         "The certificate is revoked by CRL: " + crlDp);
+            }
+            else
+            {
+                System.out.println("The certificate is Good");
             }
         } catch (IOException | CertificateException | CRLException ex) {
             Logger.getLogger(iCRLVerifier.class.getName()).log(Level.SEVERE, null, ex);

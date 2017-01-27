@@ -14,9 +14,12 @@ import java.math.BigInteger;
 import java.security.KeyStore;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
+import java.security.Principal;
 import java.security.PrivateKey;
+import java.security.PublicKey;
 import java.security.Security;
 import java.security.UnrecoverableKeyException;
+import java.security.cert.Certificate;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.util.ArrayList;
@@ -47,14 +50,16 @@ public class ICRL {
      */
     public static void main(String[] args) {
         // TODO code application logic here
+        //ReadP12("D:\\Tugas PTIK\\Certificate Authority\\Study PKI\\ajinorev_Backup.p12", "aji123456");
+        ReadP12("D:\\Tugas PTIK\\Certificate Authority\\Study PKI\\ajirev.p12", "aji123456");
     }
 
     public static void ReadP12(String filename, String password) {
         Security.addProvider(new org.bouncycastle.jce.provider.BouncyCastleProvider());
 
-        String ocsp_str = "";
+//        String crl_str = "";
 
-        byte[] issuerKeyHash = null, issuerNameHash = null;
+//        byte[] issuerKeyHash = null, issuerNameHash = null;
         BigInteger serial_number = new BigInteger("0");
 
         KeyStore my_KS;
@@ -79,14 +84,26 @@ public class ICRL {
                 java.security.cert.Certificate[] cchain = my_KS.getCertificateChain(alias);
 
                 int chain_idx = 0;
+                for (Certificate chain_list : cchain) 
+                {
+                    X509Certificate c = (X509Certificate) chain_list;
+                    org.bouncycastle.asn1.x509.Certificate c2 = org.bouncycastle.asn1.x509.Certificate.getInstance(c.getEncoded());
+                    Principal subject = c.getSubjectDN();
+                    PublicKey the_PK = c.getPublicKey();
+                    
+                    if (chain_idx == 0) {
+                        serial_number = c.getSerialNumber();
+                        
+                        iCRLVerifier.verifyCertificateCRLs(c);
+                    }
+                }
+                
             }
-        } catch (KeyStoreException | NoSuchAlgorithmException | CertificateException ex) {
+        } catch (KeyStoreException | NoSuchAlgorithmException | CertificateException | UnrecoverableKeyException | CertificateVerificationException ex) {
             Logger.getLogger(ICRL.class.getName()).log(Level.SEVERE, null, ex);
         } catch (FileNotFoundException ex) {
             Logger.getLogger(ICRL.class.getName()).log(Level.SEVERE, null, ex);
         } catch (IOException ex) {
-            Logger.getLogger(ICRL.class.getName()).log(Level.SEVERE, null, ex);
-        } catch (UnrecoverableKeyException ex) {
             Logger.getLogger(ICRL.class.getName()).log(Level.SEVERE, null, ex);
         }
             
